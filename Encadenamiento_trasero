@@ -1,0 +1,101 @@
+class MotorInferencia:
+    def __init__(self):
+        # Base de Conocimiento de las imágenes
+        self.reglas = [
+            {"resultado": "Gripe", "requisitos": ["Fiebre", "Dolores_Cuerpo", "Tos_Seca"]},
+            {"resultado": "Gripe", "requisitos": ["Fiebre", "Dolor_Cabeza_Fuerte", "Fatiga_Extrema"]},
+            {"resultado": "Resfriado", "requisitos": ["Estornudos", "Secrecion_Nasal", "Garganta_Irritada"]},
+            {"resultado": "Resfriado", "requisitos": ["Congestion_Nasal", "Dolor_Garganta_Leve"]},
+            {"resultado": "Alergia", "requisitos": ["Estornudos", "Picazon_Ojos", "Secrecion_Nasal_Transparente"]},
+            {"resultado": "Alergia", "requisitos": ["Congestion_Nasal", "Picazon_Ojos", "Expuesto_A_Alergeno"]}
+        ]
+        self.hechos_conocidos = {}
+        self.modo_automatico = False
+
+    def obtener_valor_hecho(self, sintoma):
+        """Busca el síntoma en los hechos conocidos o pregunta al usuario."""
+        if sintoma in self.hechos_conocidos:
+            # Si ya conocemos el hecho (por escenario o pregunta previa), lo retornamos
+            return self.hechos_conocidos[sintoma]
+        
+        if not self.modo_automatico:
+            # Si es personalizado y no lo conocemos, preguntamos
+            resp = input(f"¿El paciente tiene {sintoma.replace('_', ' ')}? (s/n): ").lower()
+            val = (resp == 's')
+            self.hechos_conocidos[sintoma] = val
+            return val
+        
+        # Si es automático y no está en la lista de ese escenario, asumimos False
+        return False
+
+    def verificar_meta(self, meta):
+        """Algoritmo de Backward Chaining."""
+        print(f"  Analizando meta: {meta}...")
+        reglas_que_sirven = [r for r in self.reglas if r["resultado"] == meta]
+        
+        for i, regla in enumerate(reglas_que_sirven, 1):
+            cumple_regla = True
+            for requisito in regla["requisitos"]:
+                if not self.obtener_valor_hecho(requisito):
+                    cumple_regla = False
+                    break # Falla esta regla, intenta la siguiente
+            
+            if cumple_regla:
+                return True
+        return False
+
+    def mostrar_hechos_escenario(self, escenario_nombre, datos):
+        """Imprime los hechos que se usarán para el caso elegido."""
+        print(f"\n--- CONFIGURACIÓN: {escenario_nombre} ---")
+        print("Hechos que se responderán automáticamente:")
+        for k, v in datos.items():
+            estado = "SÍ" if v else "NO"
+            print(f"  - {k.replace('_', ' ')}: {estado}")
+        print("-" * 40)
+
+    def menu(self):
+        print("\n--- SISTEMA EXPERTO: DIAGNÓSTICO MÉDICO ---")
+        print("1. Escenario 1: Posible Gripe")
+        print("2. Escenario 2: Posible Alergia")
+        print("3. Escenario 3: Posible Resfriado")
+        print("0. Modo Personalizado (Tú respondes)")
+        
+        opcion = input("\nElige una opción: ")
+
+        # Definición de datos según tus diapositivas de "Escenarios a evaluar"
+        if opcion == "1":
+            self.modo_automatico = True
+            datos = {"Fiebre": True, "Dolores_Cuerpo": True, "Tos_Seca": True, "Estornudos": False, "Picazon_Ojos": False}
+            self.mostrar_hechos_escenario("ESCENARIO 1 (GRIPE)", datos)
+            self.hechos_conocidos = datos
+        elif opcion == "2":
+            self.modo_automatico = True
+            datos = {"Fiebre": False, "Estornudos": True, "Picazon_Ojos": True, "Secrecion_Nasal_Transparente": True, "Dolores_Cuerpo": False}
+            self.mostrar_hechos_escenario("ESCENARIO 2 (ALERGIA)", datos)
+            self.hechos_conocidos = datos
+        elif opcion == "3":
+            self.modo_automatico = True
+            datos = {"Fiebre": False, "Estornudos": True, "Secrecion_Nasal": True, "Garganta_Irritada": True, "Dolores_Cuerpo": False, "Picazon_Ojos": False}
+            self.mostrar_hechos_escenario("ESCENARIO 3 (RESFRIADO)", datos)
+            self.hechos_conocidos = datos
+        else:
+            self.modo_automatico = False
+            print("\nIniciando diagnóstico manual...")
+
+        # Ejecución del encadenamiento para las metas de la práctica
+        metas = ["Gripe", "Resfriado", "Alergia"]
+        resultado_final = None
+
+        for m in metas:
+            if self.verificar_meta(m):
+                resultado_final = m
+                break
+        
+        if resultado_final:
+            print(f"\n>>> RESULTADO: El diagnóstico es {resultado_final}.")
+        else:
+            print("\n>>> RESULTADO: No se pudo confirmar ninguna enfermedad.")
+
+if __name__ == "__main__":
+    sistema = MotorInferencia()
+    sistema.menu()
